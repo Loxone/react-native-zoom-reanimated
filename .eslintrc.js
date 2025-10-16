@@ -120,6 +120,7 @@ module.exports = {
         ignoredNodes: ['TSTypeParameterInstantiation'],
       },
     ],
+	'@typescript-eslint/indent': 'off',
     'no-extra-label': 'warn',
     'no-unused-labels': 'error',
     'no-label-var': 'warn',

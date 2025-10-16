@@ -28,7 +28,8 @@
     "downlevelIteration": true
   },
   "include": [
-    "index.tsx"
+    "index.tsx",
+	"utils.ts"
   ],
   "exclude": [
     "node_modules",
