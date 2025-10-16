@@ -8,7 +8,7 @@ import React, {
 	useImperativeHandle,
 	useMemo,
 	useRef,
-} from 'react'
+} from 'react';
 import {
 	LayoutChangeEvent,
 	StyleProp,
@@ -17,7 +17,7 @@ import {
 	ViewProps,
 	Platform,
 	Text,
-} from 'react-native'
+} from 'react-native';
 import Animated, {
 	AnimatableValue,
 	AnimationCallback,
@@ -26,7 +26,7 @@ import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
 	withTiming,
-} from 'react-native-reanimated'
+} from 'react-native-reanimated';
 import {
 	Gesture,
 	GestureDetector,
@@ -36,9 +36,9 @@ import {
 	PanGestureHandlerEventPayload,
 	PinchGestureHandlerEventPayload,
 	State,
-} from 'react-native-gesture-handler'
-import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager'
-import { clampScale } from './utils'
+} from 'react-native-gesture-handler';
+import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager';
+import { clampScale } from './utils';
 
 export interface ZoomRef {
 	zoomIn(): void;
@@ -46,8 +46,8 @@ export interface ZoomRef {
 	resetZoom(): void;
 }
 
-const DEFAULT_MIN_ALLOWED_SCALE = 0.75
-const DEFAULT_MAX_ALLOWED_SCALE = 4
+const DEFAULT_MIN_ALLOWED_SCALE = 0.75;
+const DEFAULT_MAX_ALLOWED_SCALE = 4;
 
 export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 	(props, ref) => {
@@ -59,67 +59,67 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			animationConfig,
 			panThreshold = 0,
 			onZoomStateChange,
-		} = props
+		} = props;
 
-		const baseScale = useSharedValue(0.85)
-		const pinchScale = useSharedValue(1)
-		const lastScale = useSharedValue(1)
-		const isZoomedIn = useSharedValue(false)
+		const baseScale = useSharedValue(0.85);
+		const pinchScale = useSharedValue(1);
+		const lastScale = useSharedValue(1);
+		const isZoomedIn = useSharedValue(false);
 
 		useAnimatedReaction(
 			() => isZoomedIn.value,
 			(current, prev) => {
 				if (current !== prev && onZoomStateChange)
-					runOnJS(onZoomStateChange)(current)
+					runOnJS(onZoomStateChange)(current);
 			}
-		)
+		);
 
-		const containerDimensions = useSharedValue({ width: 0, height: 0 })
-		const contentDimensions = useSharedValue({ width: 1, height: 1 })
+		const containerDimensions = useSharedValue({ width: 0, height: 0 });
+		const contentDimensions = useSharedValue({ width: 1, height: 1 });
 
-		const translateX = useSharedValue(0)
-		const translateY = useSharedValue(0)
-		const lastOffsetX = useSharedValue(0)
-		const lastOffsetY = useSharedValue(0)
-		const panStartOffsetX = useSharedValue(0)
-		const panStartOffsetY = useSharedValue(0)
-		const startX = useSharedValue(0) // Store initial X position
-		const startY = useSharedValue(0) // Store initial Y position
+		const translateX = useSharedValue(0);
+		const translateY = useSharedValue(0);
+		const lastOffsetX = useSharedValue(0);
+		const lastOffsetY = useSharedValue(0);
+		const panStartOffsetX = useSharedValue(0);
+		const panStartOffsetY = useSharedValue(0);
+		const startX = useSharedValue(0); // Store initial X position
+		const startY = useSharedValue(0); // Store initial Y position
 
 		const handlePanOutsideTimeoutId: React.MutableRefObject<
 			number | undefined
-		> = useRef()
+		> = useRef();
 
-		const containerRef = useRef<View>(null)
-		const scrollWheelSubscriptionRef = useRef<number | null>(null)
+		const containerRef = useRef<View>(null);
+		const scrollWheelSubscriptionRef = useRef<number | null>(null);
 
 		const withAnimation = useCallback(
 			(toValue: number, config?: object) => {
-				'worklet'
+				'worklet';
 
 				return animationFunction(toValue, {
 					duration: 350,
 					...config,
 					...animationConfig,
-				})
+				});
 			},
 			[animationFunction, animationConfig]
-		)
+		);
 
 		const onWheelScroll = useCallback(
 			(event: WheelEvent) => {
-				const scaleFactor = event.deltaY * -0.01
-				const newScale = lastScale.value + scaleFactor
+				const scaleFactor = event.deltaY * -0.01;
+				const newScale = lastScale.value + scaleFactor;
 				const newSafeScale = clampScale(
 					newScale,
 					DEFAULT_MIN_ALLOWED_SCALE,
 					DEFAULT_MAX_ALLOWED_SCALE
-				)
-				lastScale.value = newSafeScale
-				baseScale.value = withAnimation(newSafeScale)
+				);
+				lastScale.value = newSafeScale;
+				baseScale.value = withAnimation(newSafeScale);
 			},
 			[baseScale, lastScale, withAnimation]
-		)
+		);
 
 		const getContentContainerSize = useCallback(() => {
 			return {
@@ -128,32 +128,32 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 					(contentDimensions.value.height *
 						containerDimensions.value.width) /
 					contentDimensions.value.width,
-			}
+			};
 		}, [
 			containerDimensions.value.width,
 			contentDimensions.value.height,
 			contentDimensions.value.width,
-		])
+		]);
 
 		const zoomIn = useCallback((): void => {
-			let newScale = baseScale.value * 1.25
-			if (newScale > 4) newScale = 4
+			let newScale = baseScale.value * 1.25;
+			if (newScale > 4) newScale = 4;
 
-			lastScale.value = newScale
+			lastScale.value = newScale;
 
-			baseScale.value = withAnimation(newScale)
-			pinchScale.value = withAnimation(newScale)
+			baseScale.value = withAnimation(newScale);
+			pinchScale.value = withAnimation(newScale);
 
-			const newOffsetX = 0
-			lastOffsetX.value = newOffsetX
+			const newOffsetX = 0;
+			lastOffsetX.value = newOffsetX;
 
-			const newOffsetY = 0
-			lastOffsetY.value = newOffsetY
+			const newOffsetY = 0;
+			lastOffsetY.value = newOffsetY;
 
-			translateX.value = newOffsetX
-			translateY.value = newOffsetY
+			translateX.value = newOffsetX;
+			translateY.value = newOffsetY;
 
-			isZoomedIn.value = true
+			isZoomedIn.value = true;
 		}, [
 			baseScale,
 			pinchScale,
@@ -164,26 +164,26 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			isZoomedIn,
 			lastScale,
 			withAnimation,
-		])
+		]);
 
 		const zoomOut = useCallback((): void => {
-			let newScale = baseScale.value * 0.75
-			if (newScale < 0.75) newScale = 0.75
-			lastScale.value = newScale
+			let newScale = baseScale.value * 0.75;
+			if (newScale < 0.75) newScale = 0.75;
+			lastScale.value = newScale;
 
-			baseScale.value = withAnimation(newScale)
-			pinchScale.value = withAnimation(newScale)
+			baseScale.value = withAnimation(newScale);
+			pinchScale.value = withAnimation(newScale);
 
-			const newOffsetX = 0
-			lastOffsetX.value = newOffsetX
+			const newOffsetX = 0;
+			lastOffsetX.value = newOffsetX;
 
-			const newOffsetY = 0
-			lastOffsetY.value = newOffsetY
+			const newOffsetY = 0;
+			lastOffsetY.value = newOffsetY;
 
-			translateX.value = withAnimation(newOffsetX)
-			translateY.value = withAnimation(newOffsetY)
+			translateX.value = withAnimation(newOffsetX);
+			translateY.value = withAnimation(newOffsetY);
 
-			if (newScale === 0.75) isZoomedIn.value = false
+			if (newScale === 0.75) isZoomedIn.value = false;
 		}, [
 			baseScale,
 			pinchScale,
@@ -194,17 +194,17 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			lastScale,
 			isZoomedIn,
 			withAnimation,
-		])
+		]);
 
 		const resetZoom = useCallback((): void => {
-			lastScale.value = 1
-			baseScale.value = withAnimation(0.75)
-			pinchScale.value = withAnimation(1)
-			lastOffsetX.value = 0
-			lastOffsetY.value = 0
-			translateX.value = withAnimation(0)
-			translateY.value = withAnimation(0)
-			isZoomedIn.value = false
+			lastScale.value = 1;
+			baseScale.value = withAnimation(0.75);
+			pinchScale.value = withAnimation(1);
+			lastOffsetX.value = 0;
+			lastOffsetY.value = 0;
+			translateX.value = withAnimation(0);
+			translateY.value = withAnimation(0);
+			isZoomedIn.value = false;
 		}, [
 			baseScale,
 			isZoomedIn,
@@ -215,15 +215,15 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			translateX,
 			translateY,
 			withAnimation,
-		])
+		]);
 
-		const [maxOffset, setMaxOffset] = React.useState({ x: 0, y: 0 })
+		const [maxOffset, setMaxOffset] = React.useState({ x: 0, y: 0 });
 		const handlePanOutside = useCallback((): void => {
 			if (handlePanOutsideTimeoutId.current !== undefined)
-				clearTimeout(handlePanOutsideTimeoutId.current)
+				clearTimeout(handlePanOutsideTimeoutId.current);
 
 			handlePanOutsideTimeoutId.current = setTimeout((): void => {
-				const { width, height } = getContentContainerSize()
+				const { width, height } = getContentContainerSize();
 				const maxOffset = {
 					x:
 						width * lastScale.value <
@@ -240,35 +240,35 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 									containerDimensions.value.height) /
 								2 /
 								lastScale.value,
-				}
-				setMaxOffset(maxOffset)
+				};
+				setMaxOffset(maxOffset);
 
 				const isPanedXOutside =
 					lastOffsetX.value > maxOffset.x ||
-					lastOffsetX.value < -maxOffset.x
+					lastOffsetX.value < -maxOffset.x;
 				if (isPanedXOutside) {
 					const newOffsetX =
-						lastOffsetX.value >= 0 ? maxOffset.x : -maxOffset.x
-					lastOffsetX.value = newOffsetX
+						lastOffsetX.value >= 0 ? maxOffset.x : -maxOffset.x;
+					lastOffsetX.value = newOffsetX;
 
-					translateX.value = withAnimation(newOffsetX)
+					translateX.value = withAnimation(newOffsetX);
 				} else {
-					translateX.value = lastOffsetX.value
+					translateX.value = lastOffsetX.value;
 				}
 
 				const isPanedYOutside =
 					lastOffsetY.value > maxOffset.y ||
-					lastOffsetY.value < -maxOffset.y
+					lastOffsetY.value < -maxOffset.y;
 				if (isPanedYOutside) {
 					const newOffsetY =
-						lastOffsetY.value >= 0 ? maxOffset.y : -maxOffset.y
-					lastOffsetY.value = newOffsetY
+						lastOffsetY.value >= 0 ? maxOffset.y : -maxOffset.y;
+					lastOffsetY.value = newOffsetY;
 
-					translateY.value = withAnimation(newOffsetY)
+					translateY.value = withAnimation(newOffsetY);
 				} else {
-					translateY.value = lastOffsetY.value
+					translateY.value = lastOffsetY.value;
 				}
-			}, 10)
+			}, 10);
 		}, [
 			lastOffsetX,
 			lastOffsetY,
@@ -278,12 +278,12 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			containerDimensions,
 			getContentContainerSize,
 			withAnimation,
-		])
+		]);
 
 		const onDoubleTap = useCallback((): void => {
-			if (isZoomedIn.value) zoomOut()
-			else zoomIn()
-		}, [zoomIn, zoomOut, isZoomedIn])
+			if (isZoomedIn.value) zoomOut();
+			else zoomIn();
+		}, [zoomIn, zoomOut, isZoomedIn]);
 
 		const onLayout = useCallback(
 			({
@@ -302,15 +302,15 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 						containerRef.current.addEventListener(
 							'wheel',
 							onWheelScroll
-						)
+						);
 
 				containerDimensions.value = {
 					width,
 					height,
-				}
+				};
 			},
 			[containerDimensions, onWheelScroll]
-		)
+		);
 
 		const onLayoutContent = useCallback(
 			({
@@ -321,34 +321,34 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				contentDimensions.value = {
 					width,
 					height,
-				}
+				};
 			},
 			[contentDimensions]
-		)
+		);
 
-		const [lastScaleVal, setLastScaleVal] = React.useState(lastScale.value)
+		const [lastScaleVal, setLastScaleVal] = React.useState(lastScale.value);
 		const [currentScaleVal, setCurrentScaleVal] = React.useState(
 			pinchScale.value
-		)
+		);
 		const onPinchEnd = useCallback(
 			(scale: number): void => {
-				const newScale = lastScale.value * scale
-				lastScale.value = newScale
-				setLastScaleVal(newScale)
+				const newScale = lastScale.value * scale;
+				lastScale.value = newScale;
+				setLastScaleVal(newScale);
 				if (newScale > 1) {
-					isZoomedIn.value = true
+					isZoomedIn.value = true;
 					baseScale.value = clampScale(
 						newScale,
 						DEFAULT_MIN_ALLOWED_SCALE,
 						DEFAULT_MAX_ALLOWED_SCALE
-					)
-					pinchScale.value = 1
+					);
+					pinchScale.value = 1;
 				} else {
-					zoomOut()
+					zoomOut();
 				}
 			},
 			[lastScale, baseScale, pinchScale, zoomOut, isZoomedIn]
-		)
+		);
 
 		const tapGesture = useMemo(
 			() =>
@@ -357,12 +357,12 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 					.maxDelay(300)
 					.maxDistance(10)
 					.onEnd(() => {
-						runOnJS(onDoubleTap)()
+						runOnJS(onDoubleTap)();
 					}),
 			[onDoubleTap]
-		)
+		);
 
-		const [panState, setPanState] = React.useState<string | null>(null)
+		const [panState, setPanState] = React.useState<string | null>(null);
 		const panGesture = useMemo(
 			() =>
 				Gesture.Pan()
@@ -372,21 +372,21 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							e: GestureTouchEvent,
 							state: GestureStateManagerType
 						): void => {
-							const isSingleTouch = e.numberOfTouches === 1
+							const isSingleTouch = e.numberOfTouches === 1;
 
 							// Only allow panning when zoomed in or single touch
 							if (!isZoomedIn.value && !isSingleTouch) {
-								state.fail()
-								return
+								state.fail();
+								return;
 							}
 
 							// Calculate total movement
 							const deltaX = Math.abs(
 								e.allTouches[0].absoluteX - startX.value
-							)
+							);
 							const deltaY = Math.abs(
 								e.allTouches[0].absoluteY - startY.value
-							)
+							);
 
 							// Only activate if movement exceeds threshold
 							if (
@@ -397,58 +397,64 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 									deltaX > panThreshold ||
 									deltaY > panThreshold
 								)
-									state.activate()
-								else state.fail()
+									state.activate();
+								else state.fail();
 						}
 					)
 					.onStart(
 						(
 							event: GestureUpdateEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(Object.keys(State)[event.state] ?? null)
+							setPanState(
+								Object.keys(State)[event.state] ?? null
+							);
 							// Store initial touch position
-							startX.value = event.absoluteX
-							startY.value = event.absoluteY
+							startX.value = event.absoluteX;
+							startY.value = event.absoluteY;
 
 							// Store initial translation for relative movement
-							panStartOffsetX.value = event.translationX
-							panStartOffsetY.value = event.translationY
+							panStartOffsetX.value = event.translationX;
+							panStartOffsetY.value = event.translationY;
 						}
 					)
 					.onUpdate(
 						(
 							event: GestureUpdateEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(Object.keys(State)[event.state] ?? null)
+							setPanState(
+								Object.keys(State)[event.state] ?? null
+							);
 							// Calculate relative movement from start position
 							const relativeX =
-								event.translationX - panStartOffsetX.value
+								event.translationX - panStartOffsetX.value;
 							const relativeY =
-								event.translationY - panStartOffsetY.value
+								event.translationY - panStartOffsetY.value;
 
 							// Apply movement scaled by current zoom level
 							translateX.value =
-								lastOffsetX.value + relativeX / lastScale.value
+								lastOffsetX.value + relativeX / lastScale.value;
 							translateY.value =
-								lastOffsetY.value + relativeY / lastScale.value
+								lastOffsetY.value + relativeY / lastScale.value;
 						}
 					)
 					.onEnd(
 						(
 							event: GestureStateChangeEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(Object.keys(State)[event.state] ?? null)
+							setPanState(
+								Object.keys(State)[event.state] ?? null
+							);
 							// Calculate final position
 							const finalX =
-								event.translationX - panStartOffsetX.value
+								event.translationX - panStartOffsetX.value;
 							const finalY =
-								event.translationY - panStartOffsetY.value
+								event.translationY - panStartOffsetY.value;
 
 							// Update last known position
-							lastOffsetX.value += finalX / lastScale.value
-							lastOffsetY.value += finalY / lastScale.value
+							lastOffsetX.value += finalX / lastScale.value;
+							lastOffsetY.value += finalY / lastScale.value;
 
-							runOnJS(handlePanOutside)()
+							runOnJS(handlePanOutside)();
 						}
 					),
 			[
@@ -465,24 +471,24 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				lastScale,
 				panThreshold,
 			]
-		)
+		);
 
-		const [pinchState, setPinchState] = React.useState<string | null>(null)
+		const [pinchState, setPinchState] = React.useState<string | null>(null);
 		const pinchGesture = useMemo(
 			() =>
 				Gesture.Pinch()
 					.onBegin(({ state, scale }) => {
-						setPinchState(Object.keys(State)[state] ?? null)
-						setCurrentScaleVal(scale)
+						setPinchState(Object.keys(State)[state] ?? null);
+						setCurrentScaleVal(scale);
 					})
 					.onUpdate(
 						({
 							scale,
 							state,
 						}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-							setPinchState(Object.keys(State)[state] ?? null)
-							pinchScale.value = scale
-							setCurrentScaleVal(scale)
+							setPinchState(Object.keys(State)[state] ?? null);
+							pinchScale.value = scale;
+							setCurrentScaleVal(scale);
 						}
 					)
 					.onEnd(
@@ -490,25 +496,25 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							scale,
 							state,
 						}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-							setPinchState(Object.keys(State)[state] ?? null)
-							pinchScale.value = scale
-							setCurrentScaleVal(scale)
+							setPinchState(Object.keys(State)[state] ?? null);
+							pinchScale.value = scale;
+							setCurrentScaleVal(scale);
 
-							runOnJS(onPinchEnd)(scale)
+							runOnJS(onPinchEnd)(scale);
 						}
 					),
 			[pinchScale, onPinchEnd]
-		)
+		);
 
 		const composedGestures = useMemo(
 			() => Gesture.Simultaneous(pinchGesture, panGesture),
 			[pinchGesture, panGesture]
-		)
+		);
 
 		const zoomGestures = useMemo(
 			() => Gesture.Exclusive(composedGestures, tapGesture),
 			[composedGestures, tapGesture]
-		)
+		);
 
 		const animContentContainerStyle = useAnimatedStyle(() => ({
 			transform: [
@@ -516,7 +522,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				{ translateX: translateX.value },
 				{ translateY: translateY.value },
 			],
-		}))
+		}));
 
 		useImperativeHandle(
 			ref,
@@ -526,7 +532,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				resetZoom,
 			}),
 			[resetZoom, zoomIn, zoomOut]
-		)
+		);
 
 		return (
 			<>
@@ -560,38 +566,38 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							justifyContent: 'center',
 							alignItems: 'center',
 						}}
-						pointerEvents="none"
+						pointerEvents='none'
 					>
 						<DebugElement
-							label="pinchGestureState"
+							label='pinchGestureState'
 							value={pinchState || 'N/A'}
 						/>
 						<DebugElement
-							label="panGestureState"
+							label='panGestureState'
 							value={panState || 'N/A'}
 						/>
 						<DebugElement
-							label="maxOffsetX"
+							label='maxOffsetX'
 							value={maxOffset.x.toFixed(2)}
 						/>
 						<DebugElement
-							label="maxOffsetY"
+							label='maxOffsetY'
 							value={maxOffset.y.toFixed(2)}
 						/>
 						<DebugElement
-							label="lastScale"
+							label='lastScale'
 							value={lastScaleVal.toFixed(2)}
 						/>
 						<DebugElement
-							label="currentScale"
+							label='currentScale'
 							value={currentScaleVal.toFixed(2)}
 						/>
 					</View>
 				)}
 			</>
-		)
+		);
 	}
-)
+);
 
 const DebugElement = ({ label, value }: { label: string; value: string }) => (
 	<View
@@ -610,7 +616,7 @@ const DebugElement = ({ label, value }: { label: string; value: string }) => (
 		<Text>{label} </Text>
 		<Text>{value}</Text>
 	</View>
-)
+);
 
 export interface ZoomProps {
 	style?: StyleProp<ViewProps>;
@@ -633,4 +639,4 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		overflow: 'hidden',
 	},
-})
+});

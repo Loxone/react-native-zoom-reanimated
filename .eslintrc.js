@@ -293,10 +293,6 @@ module.exports = {
     '@typescript-eslint/promise-function-async': 'error',
     radix: 'error',
     '@typescript-eslint/restrict-plus-operands': 'error',
-    semi: [
-      'error',
-      'never',
-    ],
     '@typescript-eslint/member-delimiter-style': [
       'error',
       {

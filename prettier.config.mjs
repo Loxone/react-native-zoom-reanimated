@@ -8,7 +8,7 @@ const config = {
 	bracketSpacing: true,
 	jsxSingleQuote: true,
 	singleAttributePerLine: true,
-	semi: false,
+	semi: true,
 	singleQuote: true,
 	useTabs: true,
 	tabWidth: 4,
