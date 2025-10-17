@@ -9,18 +9,8 @@ import React, {
 	useMemo,
 	useRef,
 } from 'react';
-import {
-	LayoutChangeEvent,
-	StyleProp,
-	StyleSheet,
-	View,
-	ViewProps,
-	Platform,
-	Text,
-} from 'react-native';
+import { LayoutChangeEvent, View, Platform, Text } from 'react-native';
 import Animated, {
-	AnimatableValue,
-	AnimationCallback,
 	runOnJS,
 	useAnimatedReaction,
 	useAnimatedStyle,
@@ -39,15 +29,12 @@ import {
 } from 'react-native-gesture-handler';
 import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager';
 import { clampScale } from './utils';
-
-export interface ZoomRef {
-	zoomIn(): void;
-	zoomOut(): void;
-	resetZoom(): void;
-}
-
-const DEFAULT_MIN_ALLOWED_SCALE = 0.75;
-const DEFAULT_MAX_ALLOWED_SCALE = 4;
+import {
+	MIN_SCALE as DEFAULT_MIN_ALLOWED_SCALE,
+	MAX_SCALE as DEFAULT_MAX_ALLOWED_SCALE,
+} from './constants';
+import type { ZoomProps, ZoomRef } from './types';
+import { styles } from './styles';
 
 export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 	(props, ref) => {
@@ -117,6 +104,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				);
 				lastScale.value = newSafeScale;
 				baseScale.value = withAnimation(newSafeScale);
+				setLastScaleVal(newSafeScale);
 			},
 			[baseScale, lastScale, withAnimation]
 		);
@@ -333,15 +321,16 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 		const onPinchEnd = useCallback(
 			(scale: number): void => {
 				const newScale = lastScale.value * scale;
-				lastScale.value = newScale;
-				setLastScaleVal(newScale);
-				if (newScale > 1) {
+				const newSafeScale = clampScale(
+					newScale,
+					DEFAULT_MIN_ALLOWED_SCALE,
+					DEFAULT_MAX_ALLOWED_SCALE
+				);
+				lastScale.value = newSafeScale;
+				setLastScaleVal(newSafeScale);
+				if (newSafeScale > 1) {
 					isZoomedIn.value = true;
-					baseScale.value = clampScale(
-						newScale,
-						DEFAULT_MIN_ALLOWED_SCALE,
-						DEFAULT_MAX_ALLOWED_SCALE
-					);
+					baseScale.value = newSafeScale;
 					pinchScale.value = 1;
 				} else {
 					zoomOut();
@@ -560,7 +549,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							position: 'absolute',
 							bottom: 0,
 							left: 0,
-							width: '100%',
+							width: '40%',
 							backgroundColor: '#bebebeff',
 							flex: 1,
 							justifyContent: 'center',
@@ -589,7 +578,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							value={lastScaleVal.toFixed(2)}
 						/>
 						<DebugElement
-							label='currentScale'
+							label='pinchScale'
 							value={currentScaleVal.toFixed(2)}
 						/>
 					</View>
@@ -617,26 +606,3 @@ const DebugElement = ({ label, value }: { label: string; value: string }) => (
 		<Text>{value}</Text>
 	</View>
 );
-
-export interface ZoomProps {
-	style?: StyleProp<ViewProps>;
-	contentContainerStyle?: StyleProp<ViewProps>;
-	animationConfig?: object;
-
-	animationFunction?<T extends AnimatableValue>(
-		toValue: T,
-		userConfig?: object,
-		callback?: AnimationCallback
-	): T;
-	panThreshold?: number;
-	onZoomStateChange?(zoomState: boolean): void;
-}
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		overflow: 'hidden',
-	},
-});

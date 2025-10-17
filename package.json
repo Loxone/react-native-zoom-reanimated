@@ -15,7 +15,13 @@
   },
   "license": "MIT",
   "author": "Kesha Antonov",
-  "main": "index.tsx",
+  "main": "src/index.tsx",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "src/"
+  ],
   "scripts": {
     "autofix": "eslint -c .eslintrc.js --ext .ts,.tsx --fix .",
     "bump": "npm version patch",

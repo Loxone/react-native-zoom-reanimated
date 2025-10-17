@@ -23,13 +23,15 @@
     "noImplicitThis": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": true,
     "downlevelIteration": true
   },
   "include": [
-    "index.tsx",
-	"utils.ts"
+    "src/index.tsx",
+	"src/utils.ts",
+	"src/constants.ts",
+	"src/types.ts",
+	"src/styles.ts"
   ],
   "exclude": [
     "node_modules",

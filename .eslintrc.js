@@ -281,7 +281,7 @@ module.exports = {
       },
     ],
 
-    'jsx-quotes': ['error', 'prefer-double'],
+    'jsx-quotes': ['error', 'prefer-single'],
 
     'brace-style': [
       'error',
