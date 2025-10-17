@@ -1,5 +1,5 @@
 const clampScale = (scale: number, min: number, max: number) => {
-	return Math.min(Math.max(scale, min), max)
+	return Math.max(min, Math.min(scale, max));
 }
 
 const getScaleFromDimensions = (width: number, height: number) => {

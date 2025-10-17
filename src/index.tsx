@@ -212,22 +212,23 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 
 			handlePanOutsideTimeoutId.current = setTimeout((): void => {
 				const { width, height } = getContentContainerSize();
+				const effectiveScale = baseScale.value * pinchScale.value;
 				const maxOffset = {
 					x:
-						width * lastScale.value <
-						containerDimensions.value.width
+						width * effectiveScale < containerDimensions.value.width
 							? 0
-							: (width * lastScale.value -
+							: (width * effectiveScale -
 									containerDimensions.value.width) /
-								2,
+								2 /
+								effectiveScale,
 					y:
-						height * lastScale.value <
+						height * effectiveScale <
 						containerDimensions.value.height
 							? 0
-							: (height * lastScale.value -
+							: (height * effectiveScale -
 									containerDimensions.value.height) /
 								2 /
-								lastScale.value,
+								effectiveScale,
 				};
 				setMaxOffset(maxOffset);
 
@@ -238,7 +239,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 					const newOffsetX =
 						lastOffsetX.value >= 0 ? maxOffset.x : -maxOffset.x;
 					lastOffsetX.value = newOffsetX;
-
 					translateX.value = withAnimation(newOffsetX);
 				} else {
 					translateX.value = lastOffsetX.value;
@@ -251,21 +251,21 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 					const newOffsetY =
 						lastOffsetY.value >= 0 ? maxOffset.y : -maxOffset.y;
 					lastOffsetY.value = newOffsetY;
-
 					translateY.value = withAnimation(newOffsetY);
 				} else {
 					translateY.value = lastOffsetY.value;
 				}
 			}, 10);
 		}, [
+			getContentContainerSize,
+			baseScale,
+			pinchScale,
+			containerDimensions,
 			lastOffsetX,
 			lastOffsetY,
-			lastScale,
 			translateX,
-			translateY,
-			containerDimensions,
-			getContentContainerSize,
 			withAnimation,
+			translateY,
 		]);
 
 		const onDoubleTap = useCallback((): void => {
@@ -321,16 +321,11 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 		const onPinchEnd = useCallback(
 			(scale: number): void => {
 				const newScale = lastScale.value * scale;
-				const newSafeScale = clampScale(
-					newScale,
-					DEFAULT_MIN_ALLOWED_SCALE,
-					DEFAULT_MAX_ALLOWED_SCALE
-				);
-				lastScale.value = newSafeScale;
-				setLastScaleVal(newSafeScale);
-				if (newSafeScale > 1) {
+				lastScale.value = newScale;
+				setLastScaleVal(newScale);
+				if (newScale > 1) {
 					isZoomedIn.value = true;
-					baseScale.value = newSafeScale;
+					baseScale.value = newScale;
 					pinchScale.value = 1;
 				} else {
 					zoomOut();
@@ -420,10 +415,12 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 								event.translationY - panStartOffsetY.value;
 
 							// Apply movement scaled by current zoom level
+							const effectiveScale =
+								baseScale.value * pinchScale.value;
 							translateX.value =
-								lastOffsetX.value + relativeX / lastScale.value;
+								lastOffsetX.value + relativeX / effectiveScale;
 							translateY.value =
-								lastOffsetY.value + relativeY / lastScale.value;
+								lastOffsetY.value + relativeY / effectiveScale;
 						}
 					)
 					.onEnd(
@@ -440,8 +437,10 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 								event.translationY - panStartOffsetY.value;
 
 							// Update last known position
-							lastOffsetX.value += finalX / lastScale.value;
-							lastOffsetY.value += finalY / lastScale.value;
+							const effectiveScale =
+								baseScale.value * pinchScale.value;
+							lastOffsetX.value += finalX / effectiveScale;
+							lastOffsetY.value += finalY / effectiveScale;
 
 							runOnJS(handlePanOutside)();
 						}
@@ -543,46 +542,57 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 						</Animated.View>
 					</View>
 				</GestureDetector>
-				{__DEV__ && (
-					<View
-						style={{
-							position: 'absolute',
-							bottom: 0,
-							left: 0,
-							width: '40%',
-							backgroundColor: '#bebebeff',
-							flex: 1,
-							justifyContent: 'center',
-							alignItems: 'center',
-						}}
-						pointerEvents='none'
-					>
-						<DebugElement
-							label='pinchGestureState'
-							value={pinchState || 'N/A'}
-						/>
-						<DebugElement
-							label='panGestureState'
-							value={panState || 'N/A'}
-						/>
-						<DebugElement
-							label='maxOffsetX'
-							value={maxOffset.x.toFixed(2)}
-						/>
-						<DebugElement
-							label='maxOffsetY'
-							value={maxOffset.y.toFixed(2)}
-						/>
-						<DebugElement
-							label='lastScale'
-							value={lastScaleVal.toFixed(2)}
-						/>
-						<DebugElement
-							label='pinchScale'
-							value={currentScaleVal.toFixed(2)}
-						/>
-					</View>
-				)}
+
+				<View
+					style={{
+						position: 'absolute',
+						bottom: 0,
+						left: 0,
+						width: '40%',
+						backgroundColor: '#bebebeff',
+						flex: 1,
+						justifyContent: 'center',
+						alignItems: 'center',
+					}}
+					pointerEvents='none'
+				>
+					<DebugElement
+						label='pinchGestureState'
+						value={pinchState || 'N/A'}
+					/>
+					<DebugElement
+						label='panGestureState'
+						value={panState || 'N/A'}
+					/>
+					<DebugElement
+						label='maxOffsetX'
+						value={maxOffset.x.toFixed(2)}
+					/>
+					<DebugElement
+						label='maxOffsetY'
+						value={maxOffset.y.toFixed(2)}
+					/>
+					<DebugElement
+						label='lastScale'
+						value={lastScaleVal.toFixed(2)}
+					/>
+					<DebugElement
+						label='pinchScale'
+						value={currentScaleVal.toFixed(2)}
+					/>
+					<DebugElement
+						label='containerSize'
+						value={`${containerDimensions.value.width.toFixed(2)} x ${containerDimensions.value.height.toFixed(
+							2
+						)}`}
+					/>
+					<DebugElement
+						label='contentSize'
+						value={`${contentDimensions.value.width.toFixed(
+							2
+						)} x ${contentDimensions.value.height.toFixed(2)}`}
+					/>
+				</View>
 			</>
 		);
 	}
