@@ -104,7 +104,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 				);
 				lastScale.value = newSafeScale;
 				baseScale.value = withAnimation(newSafeScale);
-				setLastScaleVal(newSafeScale);
 			},
 			[baseScale, lastScale, withAnimation]
 		);
@@ -205,7 +204,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			withAnimation,
 		]);
 
-		const [maxOffset, setMaxOffset] = React.useState({ x: 0, y: 0 });
 		const handlePanOutside = useCallback((): void => {
 			if (handlePanOutsideTimeoutId.current !== undefined)
 				clearTimeout(handlePanOutsideTimeoutId.current);
@@ -230,7 +228,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 								2 /
 								effectiveScale,
 				};
-				setMaxOffset(maxOffset);
 
 				const isPanedXOutside =
 					lastOffsetX.value > maxOffset.x ||
@@ -314,15 +311,10 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			[contentDimensions]
 		);
 
-		const [lastScaleVal, setLastScaleVal] = React.useState(lastScale.value);
-		const [currentScaleVal, setCurrentScaleVal] = React.useState(
-			pinchScale.value
-		);
 		const onPinchEnd = useCallback(
 			(scale: number): void => {
 				const newScale = lastScale.value * scale;
 				lastScale.value = newScale;
-				setLastScaleVal(newScale);
 				if (newScale > 1) {
 					isZoomedIn.value = true;
 					baseScale.value = newScale;
@@ -345,8 +337,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 					}),
 			[onDoubleTap]
 		);
-
-		const [panState, setPanState] = React.useState<string | null>(null);
 		const panGesture = useMemo(
 			() =>
 				Gesture.Pan()
@@ -389,9 +379,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 						(
 							event: GestureUpdateEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(
-								Object.keys(State)[event.state] ?? null
-							);
 							// Store initial touch position
 							startX.value = event.absoluteX;
 							startY.value = event.absoluteY;
@@ -405,9 +392,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 						(
 							event: GestureUpdateEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(
-								Object.keys(State)[event.state] ?? null
-							);
 							// Calculate relative movement from start position
 							const relativeX =
 								event.translationX - panStartOffsetX.value;
@@ -427,9 +411,6 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 						(
 							event: GestureStateChangeEvent<PanGestureHandlerEventPayload>
 						): void => {
-							setPanState(
-								Object.keys(State)[event.state] ?? null
-							);
 							// Calculate final position
 							const finalX =
 								event.translationX - panStartOffsetX.value;
@@ -461,22 +442,15 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 			]
 		);
 
-		const [pinchState, setPinchState] = React.useState<string | null>(null);
 		const pinchGesture = useMemo(
 			() =>
 				Gesture.Pinch()
-					.onBegin(({ state, scale }) => {
-						setPinchState(Object.keys(State)[state] ?? null);
-						setCurrentScaleVal(scale);
-					})
 					.onUpdate(
 						({
 							scale,
 							state,
 						}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-							setPinchState(Object.keys(State)[state] ?? null);
 							pinchScale.value = scale;
-							setCurrentScaleVal(scale);
 						}
 					)
 					.onEnd(
@@ -484,10 +458,7 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 							scale,
 							state,
 						}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-							setPinchState(Object.keys(State)[state] ?? null);
 							pinchScale.value = scale;
-							setCurrentScaleVal(scale);
-
 							runOnJS(onPinchEnd)(scale);
 						}
 					),
@@ -523,96 +494,24 @@ export default forwardRef<ZoomRef, PropsWithChildren<ZoomProps>>(
 		);
 
 		return (
-			<>
-				<GestureDetector gesture={zoomGestures}>
-					<View
-						style={[styles.container, style]}
-						onLayout={onLayout}
-						collapsable={false}
-						ref={containerRef}
-					>
-						<Animated.View
-							style={[
-								animContentContainerStyle,
-								contentContainerStyle,
-							]}
-							onLayout={onLayoutContent}
-						>
-							{children}
-						</Animated.View>
-					</View>
-				</GestureDetector>
-
+			<GestureDetector gesture={zoomGestures}>
 				<View
-					style={{
-						position: 'absolute',
-						bottom: 0,
-						left: 0,
-						width: '40%',
-						backgroundColor: '#bebebeff',
-						flex: 1,
-						justifyContent: 'center',
-						alignItems: 'center',
-					}}
-					pointerEvents='none'
+					style={[styles.container, style]}
+					onLayout={onLayout}
+					collapsable={false}
+					ref={containerRef}
 				>
-					<DebugElement
-						label='pinchGestureState'
-						value={pinchState || 'N/A'}
-					/>
-					<DebugElement
-						label='panGestureState'
-						value={panState || 'N/A'}
-					/>
-					<DebugElement
-						label='maxOffsetX'
-						value={maxOffset.x.toFixed(2)}
-					/>
-					<DebugElement
-						label='maxOffsetY'
-						value={maxOffset.y.toFixed(2)}
-					/>
-					<DebugElement
-						label='lastScale'
-						value={lastScaleVal.toFixed(2)}
-					/>
-					<DebugElement
-						label='pinchScale'
-						value={currentScaleVal.toFixed(2)}
-					/>
-					<DebugElement
-						label='containerSize'
-						value={`${containerDimensions.value.width.toFixed(2)} x ${containerDimensions.value.height.toFixed(
-							2
-						)}`}
-					/>
-					<DebugElement
-						label='contentSize'
-						value={`${contentDimensions.value.width.toFixed(
-							2
-						)} x ${contentDimensions.value.height.toFixed(2)}`}
-					/>
+					<Animated.View
+						style={[
+							animContentContainerStyle,
+							contentContainerStyle,
+						]}
+						onLayout={onLayoutContent}
+					>
+						{children}
+					</Animated.View>
 				</View>
-			</>
+			</GestureDetector>
 		);
 	}
-);
-
-const DebugElement = ({ label, value }: { label: string; value: string }) => (
-	<View
-		style={{
-			backgroundColor: '#00000088',
-			flex: 1,
-			flexDirection: 'row',
-			justifyContent: 'space-between',
-			alignItems: 'center',
-			paddingHorizontal: 8,
-			paddingVertical: 4,
-			margin: 2,
-			borderRadius: 4,
-		}}
-	>
-		<Text>{label} </Text>
-		<Text>{value}</Text>
-	</View>
 );
