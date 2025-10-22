@@ -31,13 +31,9 @@ type AnimationConfigProps = Parameters<typeof withTiming>[1];
 interface ZoomGestureProps {
 	animationFunction?: typeof withTiming;
 	animationConfig?: AnimationConfigProps;
-	doubleTapConfig?: {
-		defaultScale?: number;
-		minZoomScale?: number;
-		maxZoomScale?: number;
-	};
-	initialScale?: number;panThreshold?: number;
-    onZoomStateChange?(zoomState: boolean): void;
+	initialScale?: number;
+	panThreshold?: number;
+	onZoomStateChange?(zoomState: boolean): void;
 }
 
 export type { ZoomRef, ZoomProps, ZoomGestureProps, AnimationConfigProps };

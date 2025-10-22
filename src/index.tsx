@@ -10,7 +10,7 @@ import React, {
 	useMemo,
 	useRef,
 } from 'react';
-import { LayoutChangeEvent, View, Platform, Text } from 'react-native';
+import { LayoutChangeEvent, View, Platform } from 'react-native';
 import Animated, {
 	runOnJS,
 	useAnimatedReaction,
@@ -19,7 +19,6 @@ import Animated, {
 	withTiming,
 } from 'react-native-reanimated';
 import {
-	ComposedGesture,
 	Gesture,
 	GestureDetector,
 	GestureStateChangeEvent,
@@ -32,9 +31,8 @@ import {
 import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager';
 import { clampScale } from './utils';
 import {
-	MIN_SCALE as DEFAULT_MIN_ALLOWED_SCALE,
-	MAX_SCALE as DEFAULT_MAX_ALLOWED_SCALE,
 	MIN_SCALE,
+	MAX_SCALE,
 } from './constants';
 import type {
 	AnimationConfigProps,
@@ -48,9 +46,8 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	const {
 		animationFunction = withTiming,
 		animationConfig,
-		doubleTapConfig,
 		initialScale = 0.85,
-		panThreshold,
+		panThreshold = 0,
 		onZoomStateChange,
 	} = props;
 
@@ -119,8 +116,8 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			const newScale = lastScale.value + scaleFactor;
 			const newSafeScale = clampScale(
 				newScale,
-				DEFAULT_MIN_ALLOWED_SCALE,
-				DEFAULT_MAX_ALLOWED_SCALE
+				MIN_SCALE,
+				MAX_SCALE
 			);
 			lastScale.value = newSafeScale;
 			baseScale.value = withAnimation(newSafeScale);
@@ -135,7 +132,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 
 	const zoomIn = useCallback((): void => {
 		let newScale = baseScale.value * 1.25;
-		if (newScale > 4) newScale = 4;
+		if (newScale > MAX_SCALE) newScale = MAX_SCALE;
 
 		lastScale.value = newScale;
 
@@ -336,152 +333,140 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		[lastScale, baseScale, pinchScale, zoomOut, isZoomedIn]
 	);
 
-	const tapGesture = useMemo(
-		() =>
-			Gesture.Tap()
-				.numberOfTaps(2)
-				.maxDelay(300)
-				.maxDistance(10)
-				.onEnd(() => {
-					runOnJS(onDoubleTap)();
-				}),
-		[onDoubleTap]
-	);
-	const panGesture = useMemo(
-		() =>
-			Gesture.Pan()
-				.maxPointers(2)
-				.onTouchesMove(
-					(
-						e: GestureTouchEvent,
-						state: GestureStateManagerType
-					): void => {
-						const isSingleTouch = e.numberOfTouches === 1;
+	const zoomGesture = useMemo(() => {
+		const tapGesture = Gesture.Tap()
+			.numberOfTaps(2)
+			.maxDeltaX(25)
+			.maxDeltaY(25)
+			.onEnd(() => {
+				runOnJS(onDoubleTap)();
+			});
 
-						// Only allow panning when zoomed in or single touch
-						if (!isZoomedIn.value && !isSingleTouch) {
-							state.fail();
-							return;
-						}
+		const panGesture = Gesture.Pan()
+			.maxPointers(2)
+			.onTouchesMove(
+				(
+					e: GestureTouchEvent,
+					state: GestureStateManagerType
+				): void => {
+					const isSingleTouch = e.numberOfTouches === 1;
 
-						// Calculate total movement
-						const deltaX = Math.abs(
-							e.allTouches[0].absoluteX - startX.value
-						);
-						const deltaY = Math.abs(
-							e.allTouches[0].absoluteY - startY.value
-						);
-
-						// Only activate if movement exceeds threshold
-						if (
-							e.state === State.UNDETERMINED ||
-							e.state === State.BEGAN
-						)
-							if (deltaX > panThreshold || deltaY > panThreshold)
-								state.activate();
-							else state.fail();
+					// Only allow panning when zoomed in or single touch
+					if (!isZoomedIn.value && !isSingleTouch) {
+						state.fail();
+						return;
 					}
-				)
-				.onStart(
-					(
-						event: GestureUpdateEvent<PanGestureHandlerEventPayload>
-					): void => {
-						// Store initial touch position
-						startX.value = event.absoluteX;
-						startY.value = event.absoluteY;
 
-						// Store initial translation for relative movement
-						panStartOffsetX.value = event.translationX;
-						panStartOffsetY.value = event.translationY;
-					}
-				)
-				.onUpdate(
-					(
-						event: GestureUpdateEvent<PanGestureHandlerEventPayload>
-					): void => {
-						// Calculate relative movement from start position
-						const relativeX =
-							event.translationX - panStartOffsetX.value;
-						const relativeY =
-							event.translationY - panStartOffsetY.value;
+					// Calculate total movement
+					const deltaX = Math.abs(
+						e.allTouches[0].absoluteX - startX.value
+					);
+					const deltaY = Math.abs(
+						e.allTouches[0].absoluteY - startY.value
+					);
 
-						// Apply movement scaled by current zoom level
-						const effectiveScale =
-							baseScale.value * pinchScale.value;
-						translateX.value =
-							lastOffsetX.value + relativeX / effectiveScale;
-						translateY.value =
-							lastOffsetY.value + relativeY / effectiveScale;
-					}
-				)
-				.onEnd(
-					(
-						event: GestureStateChangeEvent<PanGestureHandlerEventPayload>
-					): void => {
-						// Calculate final position
-						const finalX =
-							event.translationX - panStartOffsetX.value;
-						const finalY =
-							event.translationY - panStartOffsetY.value;
+					// Only activate if movement exceeds threshold
+					if (
+						e.state === State.UNDETERMINED ||
+						e.state === State.BEGAN
+					)
+						if (deltaX > panThreshold || deltaY > panThreshold)
+							state.activate();
+						else state.fail();
+				}
+			)
+			.onStart(
+				(
+					event: GestureUpdateEvent<PanGestureHandlerEventPayload>
+				): void => {
+					// Store initial touch position
+					startX.value = event.absoluteX;
+					startY.value = event.absoluteY;
 
-						// Update last known position
-						const effectiveScale =
-							baseScale.value * pinchScale.value;
-						lastOffsetX.value += finalX / effectiveScale;
-						lastOffsetY.value += finalY / effectiveScale;
+					// Store initial translation for relative movement
+					panStartOffsetX.value = event.translationX;
+					panStartOffsetY.value = event.translationY;
+				}
+			)
+			.onUpdate(
+				(
+					event: GestureUpdateEvent<PanGestureHandlerEventPayload>
+				): void => {
+					// Calculate relative movement from start position
+					const relativeX =
+						event.translationX - panStartOffsetX.value;
+					const relativeY =
+						event.translationY - panStartOffsetY.value;
 
-						runOnJS(handlePanOutside)();
-					}
-				),
-		[
-			isZoomedIn.value,
-			startX,
-			startY,
-			panThreshold,
-			panStartOffsetX,
-			panStartOffsetY,
-			baseScale.value,
-			pinchScale.value,
-			translateX,
-			lastOffsetX,
-			translateY,
-			lastOffsetY,
-			handlePanOutside,
-		]
-	);
+					// Apply movement scaled by current zoom level
+					const effectiveScale = baseScale.value * pinchScale.value;
+					translateX.value =
+						lastOffsetX.value + relativeX / effectiveScale;
+					translateY.value =
+						lastOffsetY.value + relativeY / effectiveScale;
+				}
+			)
+			.onEnd(
+				(
+					event: GestureStateChangeEvent<PanGestureHandlerEventPayload>
+				): void => {
+					// Calculate final position
+					const finalX = event.translationX - panStartOffsetX.value;
+					const finalY = event.translationY - panStartOffsetY.value;
 
-	const pinchGesture = useMemo(
-		() =>
-			Gesture.Pinch()
-				.onUpdate(
-					({
-						scale,
-						state,
-					}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-						pinchScale.value = scale;
-					}
-				)
-				.onEnd(
-					({
-						scale,
-						state,
-					}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
-						pinchScale.value = scale;
-						runOnJS(onPinchEnd)(scale);
-					}
-				),
-		[pinchScale, onPinchEnd]
-	);
+					// Update last known position
+					const effectiveScale = baseScale.value * pinchScale.value;
+					lastOffsetX.value += finalX / effectiveScale;
+					lastOffsetY.value += finalY / effectiveScale;
 
-	const composedGestures = useMemo(
-		() => Gesture.Simultaneous(pinchGesture, panGesture),
-		[pinchGesture, panGesture]
-	);
+					runOnJS(handlePanOutside)();
+				}
+			);
 
-	const zoomGesture = useMemo(
-		() => Gesture.Exclusive(composedGestures, tapGesture),
-		[composedGestures, tapGesture]
-	);
+		const pinchGesture = Gesture.Pinch()
+			.onUpdate(
+				({
+					scale,
+					state,
+				}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
+					pinchScale.value = scale;
+				}
+			)
+			.onEnd(
+				({
+					scale,
+					state,
+				}: GestureUpdateEvent<PinchGestureHandlerEventPayload>): void => {
+					pinchScale.value = scale;
+					runOnJS(onPinchEnd)(scale);
+				}
+			);
+
+		return Gesture.Exclusive(
+			Gesture.Simultaneous(pinchGesture, panGesture),
+			tapGesture
+		);
+	}, [
+		// Pinch and pan gesture dependency
+		pinchScale,
+		// Pinch gesture dependencies
+		onPinchEnd,
+		// Pan gesture dependencies
+		isZoomedIn,
+		startX,
+		startY,
+		panThreshold,
+		panStartOffsetX,
+		panStartOffsetY,
+		baseScale,
+		translateX,
+		lastOffsetX,
+		translateY,
+		lastOffsetY,
+		handlePanOutside,
+		// Tap gesture dependencies
+		onDoubleTap,
+	]);
 
 	const contentContainerAnimatedStyle = useAnimatedStyle(() => ({
 		transform: [
