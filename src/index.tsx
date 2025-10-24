@@ -112,8 +112,9 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
-			const scaleFactor = event.deltaY * -0.01;
-			const newScale = lastScale.value + scaleFactor;
+			event.preventDefault();
+			const scaleStep = event.deltaY < 0 ? 0.1 : -0.1;
+			const newScale = lastScale.value + scaleStep;
 			const newSafeScale = clampScale(
 				newScale,
 				MIN_SCALE,
@@ -121,11 +122,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			);
 			lastScale.value = newSafeScale;
 			baseScale.value = withAnimation(newSafeScale);
-			if (newSafeScale > MIN_SCALE) {
-				isZoomedIn.value = true;
-			} else {
-				isZoomedIn.value = false;
-			}
+			isZoomedIn.value = newSafeScale > MIN_SCALE;
 		},
 		[baseScale, isZoomedIn, lastScale, withAnimation]
 	);
