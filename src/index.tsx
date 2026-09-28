@@ -53,7 +53,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 
 	const baseScale = useSharedValue(initialScale);
 	const pinchScale = useSharedValue(1);
-	const lastScale = useSharedValue(1);
+	const lastScale = useSharedValue(initialScale);
 	const isZoomedIn = useSharedValue(false);
 
 	const containerDimensions = useSharedValue({ width: 0, height: 0 });
