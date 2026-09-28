@@ -132,7 +132,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		lastScale.value = newScale;
 
 		baseScale.value = withAnimation(newScale);
-		pinchScale.value = withAnimation(newScale);
+		pinchScale.value = withAnimation(1);
 
 		const newOffsetX = 0;
 		lastOffsetX.value = newOffsetX;
@@ -162,7 +162,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		lastScale.value = newScale;
 
 		baseScale.value = withAnimation(newScale);
-		pinchScale.value = withAnimation(newScale);
+		pinchScale.value = withAnimation(1);
 
 		const newOffsetX = 0;
 		lastOffsetX.value = newOffsetX;
