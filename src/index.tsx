@@ -106,10 +106,51 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		};
 	}, [containerDimensions, contentDimensions]);
 
+	// How far the content may be offset before it pulls away from the container's edges
+	const getMaxOffset = useCallback(() => {
+		const { width, height } = getContentContainerSize();
+		const effectiveScale = baseScale.value * pinchScale.value;
+		return {
+			x:
+				width * effectiveScale < containerDimensions.value.width
+					? 0
+					: (width * effectiveScale -
+							containerDimensions.value.width) /
+						2 /
+						effectiveScale,
+			y:
+				height * effectiveScale < containerDimensions.value.height
+					? 0
+					: (height * effectiveScale -
+							containerDimensions.value.height) /
+						2 /
+						effectiveScale,
+		};
+	}, [getContentContainerSize, baseScale, pinchScale, containerDimensions]);
+
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
 			event.preventDefault();
-			// Horizontal-only wheel movement (shift + wheel, trackpad swipe) has no zoom direction
+			// Mostly sideways movement (tilt wheel, trackpad swipe, shift + wheel where the OS turns it
+			// into deltaX) pans, by as many pixels as it would scroll a page. ctrl + wheel is a
+			// trackpad pinch and always zooms.
+			if (
+				!event.ctrlKey &&
+				Math.abs(event.deltaX) > Math.abs(event.deltaY)
+			) {
+				const effectiveScale = baseScale.value * pinchScale.value;
+				const maxOffsetX = getMaxOffset().x;
+				const newOffsetX = Math.max(
+					-maxOffsetX,
+					Math.min(
+						lastOffsetX.value - event.deltaX / effectiveScale,
+						maxOffsetX
+					)
+				);
+				lastOffsetX.value = newOffsetX;
+				translateX.value = newOffsetX;
+				return;
+			}
 			if (event.deltaY === 0) return;
 			const scaleStep = event.deltaY < 0 ? 0.1 : -0.1;
 			const newScale = lastScale.value + scaleStep;
@@ -122,7 +163,16 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			baseScale.value = withAnimation(newSafeScale);
 			isZoomedIn.value = newSafeScale > MIN_SCALE;
 		},
-		[baseScale, isZoomedIn, lastScale, withAnimation]
+		[
+			baseScale,
+			pinchScale,
+			getMaxOffset,
+			lastOffsetX,
+			translateX,
+			isZoomedIn,
+			lastScale,
+			withAnimation,
+		]
 	);
 
 	const zoomIn = useCallback((): void => {
@@ -212,24 +262,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			clearTimeout(handlePanOutsideTimeoutId.current);
 
 		handlePanOutsideTimeoutId.current = setTimeout((): void => {
-			const { width, height } = getContentContainerSize();
-			const effectiveScale = baseScale.value * pinchScale.value;
-			const maxOffset = {
-				x:
-					width * effectiveScale < containerDimensions.value.width
-						? 0
-						: (width * effectiveScale -
-								containerDimensions.value.width) /
-							2 /
-							effectiveScale,
-				y:
-					height * effectiveScale < containerDimensions.value.height
-						? 0
-						: (height * effectiveScale -
-								containerDimensions.value.height) /
-							2 /
-							effectiveScale,
-			};
+			const maxOffset = getMaxOffset();
 
 			const isPanedXOutside =
 				lastOffsetX.value > maxOffset.x ||
@@ -256,10 +289,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			}
 		}, 10);
 	}, [
-		getContentContainerSize,
-		baseScale,
-		pinchScale,
-		containerDimensions,
+		getMaxOffset,
 		lastOffsetX,
 		lastOffsetY,
 		translateX,
