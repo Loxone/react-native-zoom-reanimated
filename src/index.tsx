@@ -317,15 +317,15 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		(scale: number): void => {
 			const newScale = lastScale.value * scale;
 			lastScale.value = newScale;
-			if (newScale > 1) {
+			if (newScale > MIN_SCALE) {
 				isZoomedIn.value = true;
 				baseScale.value = newScale;
 				pinchScale.value = 1;
 			} else {
-				zoomOut();
+				resetZoom();
 			}
 		},
-		[lastScale, baseScale, pinchScale, zoomOut, isZoomedIn]
+		[lastScale, baseScale, pinchScale, resetZoom, isZoomedIn]
 	);
 
 	const zoomGesture = useMemo(() => {
