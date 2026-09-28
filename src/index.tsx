@@ -191,7 +191,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	]);
 
 	const resetZoom = useCallback((): void => {
-		lastScale.value = 1;
+		lastScale.value = 0.75;
 		baseScale.value = withAnimation(0.75);
 		pinchScale.value = withAnimation(1);
 		lastOffsetX.value = 0;
