@@ -437,7 +437,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 				}
 			);
 
-		return Gesture.Exclusive(
+		return Gesture.Race(
 			Gesture.Simultaneous(pinchGesture, panGesture),
 			tapGesture
 		);
