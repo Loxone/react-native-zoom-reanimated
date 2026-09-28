@@ -315,17 +315,21 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 
 	const onPinchEnd = useCallback(
 		(scale: number): void => {
-			const newScale = lastScale.value * scale;
+			const pinchedScale = lastScale.value * scale;
+			const newScale = Math.min(pinchedScale, MAX_SCALE);
 			lastScale.value = newScale;
 			if (newScale > MIN_SCALE) {
 				isZoomedIn.value = true;
-				baseScale.value = newScale;
+				baseScale.value = pinchedScale;
 				pinchScale.value = 1;
+				// A pinch past the maximum settles back to it on release, as one past the minimum does
+				if (newScale < pinchedScale)
+					baseScale.value = withAnimation(newScale);
 			} else {
 				resetZoom();
 			}
 		},
-		[lastScale, baseScale, pinchScale, resetZoom, isZoomedIn]
+		[lastScale, baseScale, pinchScale, resetZoom, isZoomedIn, withAnimation]
 	);
 
 	const zoomGesture = useMemo(() => {
