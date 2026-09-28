@@ -96,19 +96,9 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		[animationFunction, animationConfig]
 	);
 
-	const getContentContainerSize = useCallback(() => {
-		return {
-			width: containerDimensions.value.width,
-			height:
-				(contentDimensions.value.height *
-					containerDimensions.value.width) /
-				contentDimensions.value.width,
-		};
-	}, [containerDimensions, contentDimensions]);
-
 	// How far the content may be offset before it pulls away from the container's edges
 	const getMaxOffset = useCallback(() => {
-		const { width, height } = getContentContainerSize();
+		const { width, height } = contentDimensions.value;
 		const effectiveScale = baseScale.value * pinchScale.value;
 		return {
 			x:
@@ -126,7 +116,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 						2 /
 						effectiveScale,
 		};
-	}, [getContentContainerSize, baseScale, pinchScale, containerDimensions]);
+	}, [contentDimensions, baseScale, pinchScale, containerDimensions]);
 
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
