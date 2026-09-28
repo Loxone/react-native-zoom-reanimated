@@ -6,6 +6,7 @@ import React, {
 	forwardRef,
 	PropsWithChildren,
 	useCallback,
+	useEffect,
 	useImperativeHandle,
 	useMemo,
 	useRef,
@@ -70,7 +71,6 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	> = useRef();
 
 	const containerRef = useRef<View>(null);
-	const scrollWheelSubscriptionRef = useRef<number | null>(null);
 
 	useAnimatedReaction(
 		() => isZoomedIn.value,
@@ -289,31 +289,27 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		else zoomIn();
 	}, [zoomIn, zoomOut, isZoomedIn]);
 
+	// Web only: one wheel listener on the container, replaced whenever onWheelScroll changes
+	useEffect(() => {
+		const container = containerRef.current as unknown as HTMLElement | null;
+		if (Platform.OS === 'ios' || Platform.OS === 'android' || !container)
+			return undefined;
+		container.addEventListener('wheel', onWheelScroll);
+		return () => container.removeEventListener('wheel', onWheelScroll);
+	}, [onWheelScroll]);
+
 	const onLayout = useCallback(
 		({
 			nativeEvent: {
 				layout: { width, height },
 			},
 		}: LayoutChangeEvent): void => {
-			if (
-				Platform.OS !== 'ios' &&
-				Platform.OS !== 'android' &&
-				containerRef.current &&
-				!scrollWheelSubscriptionRef.current
-			)
-				scrollWheelSubscriptionRef.current =
-					// @ts-expect-error - web only
-					containerRef.current.addEventListener(
-						'wheel',
-						onWheelScroll
-					);
-
 			containerDimensions.value = {
 				width,
 				height,
 			};
 		},
-		[containerDimensions, onWheelScroll]
+		[containerDimensions]
 	);
 
 	const onLayoutContent = useCallback(
