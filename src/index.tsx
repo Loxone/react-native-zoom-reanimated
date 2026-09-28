@@ -113,6 +113,8 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
 			event.preventDefault();
+			// Horizontal-only wheel movement (shift + wheel, trackpad swipe) has no zoom direction
+			if (event.deltaY === 0) return;
 			const scaleStep = event.deltaY < 0 ? 0.1 : -0.1;
 			const newScale = lastScale.value + scaleStep;
 			const newSafeScale = clampScale(
