@@ -104,11 +104,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 					containerDimensions.value.width) /
 				contentDimensions.value.width,
 		};
-	}, [
-		containerDimensions.value.width,
-		contentDimensions.value.height,
-		contentDimensions.value.width,
-	]);
+	}, [containerDimensions, contentDimensions]);
 
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
