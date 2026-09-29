@@ -26,7 +26,6 @@ import {
 	GestureUpdateEvent,
 	PanGestureHandlerEventPayload,
 	PinchGestureHandlerEventPayload,
-	State,
 } from 'react-native-gesture-handler';
 import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager';
 import { clampScale } from './utils';
@@ -65,8 +64,6 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	const lastOffsetY = useSharedValue(0);
 	const panStartOffsetX = useSharedValue(0);
 	const panStartOffsetY = useSharedValue(0);
-	const startX = useSharedValue(0); // Store initial X position
-	const startY = useSharedValue(0); // Store initial Y position
 
 	const handlePanOutsideTimeoutId: React.MutableRefObject<
 		number | undefined
@@ -363,6 +360,8 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 
 		const panGesture = Gesture.Pan()
 			.maxPointers(2)
+			// Activates once the touch has moved panThreshold from where it started
+			.minDistance(panThreshold)
 			.onTouchesMove(
 				(
 					e: GestureTouchEvent,
@@ -375,33 +374,12 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 						state.fail();
 						return;
 					}
-
-					// Calculate total movement
-					const deltaX = Math.abs(
-						e.allTouches[0].absoluteX - startX.value
-					);
-					const deltaY = Math.abs(
-						e.allTouches[0].absoluteY - startY.value
-					);
-
-					// Only activate if movement exceeds threshold
-					if (
-						e.state === State.UNDETERMINED ||
-						e.state === State.BEGAN
-					)
-						if (deltaX > panThreshold || deltaY > panThreshold)
-							state.activate();
-						else state.fail();
 				}
 			)
 			.onStart(
 				(
 					event: GestureUpdateEvent<PanGestureHandlerEventPayload>
 				): void => {
-					// Store initial touch position
-					startX.value = event.absoluteX;
-					startY.value = event.absoluteY;
-
 					// Store initial translation for relative movement
 					panStartOffsetX.value = event.translationX;
 					panStartOffsetY.value = event.translationY;
@@ -472,8 +450,6 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		onPinchEnd,
 		// Pan gesture dependencies
 		isZoomedIn,
-		startX,
-		startY,
 		panThreshold,
 		panStartOffsetX,
 		panStartOffsetY,
