@@ -65,6 +65,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 	const lastOffsetY = useSharedValue(0);
 	const panStartOffsetX = useSharedValue(0);
 	const panStartOffsetY = useSharedValue(0);
+	const isPanning = useSharedValue(false);
 
 	const handlePanOutsideTimeoutId: React.MutableRefObject<
 		number | undefined
@@ -93,10 +94,13 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		[animationFunction, animationConfig]
 	);
 
-	// How far the content may be offset before it pulls away from the container's edges
+	// How far the content may be offset before it pulls away from the container's edges. A scale
+	// still animating counts at the smaller of where it is and where it's headed, so the bounds
+	// hold throughout the animation and once it settles.
 	const getMaxOffset = useCallback(() => {
 		const { width, height } = contentDimensions.value;
-		const effectiveScale = baseScale.value * pinchScale.value;
+		const effectiveScale =
+			Math.min(baseScale.value, lastScale.value) * pinchScale.value;
 		return {
 			x:
 				width * effectiveScale < containerDimensions.value.width
@@ -113,7 +117,13 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 						2 /
 						effectiveScale,
 		};
-	}, [contentDimensions, baseScale, pinchScale, containerDimensions]);
+	}, [
+		contentDimensions,
+		baseScale,
+		lastScale,
+		pinchScale,
+		containerDimensions,
+	]);
 
 	const onWheelScroll = useCallback(
 		(event: WheelEvent) => {
@@ -149,6 +159,28 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			lastScale.value = newSafeScale;
 			baseScale.value = withAnimation(newSafeScale);
 			isZoomedIn.value = newSafeScale > MIN_SCALE;
+			// Zooming out shrinks the bounds: pull the content back inside them, animated as
+			// handlePanOutside snaps a drag back, and leave a drag still running to its own end.
+			// An offset already inside stays as it is, so a notch doesn't cut the previous
+			// notch's pull short.
+			if (isPanning.value) return;
+			const maxOffset = getMaxOffset();
+			const newOffsetX = Math.max(
+				-maxOffset.x,
+				Math.min(lastOffsetX.value, maxOffset.x)
+			);
+			if (newOffsetX !== lastOffsetX.value) {
+				lastOffsetX.value = newOffsetX;
+				translateX.value = withAnimation(newOffsetX);
+			}
+			const newOffsetY = Math.max(
+				-maxOffset.y,
+				Math.min(lastOffsetY.value, maxOffset.y)
+			);
+			if (newOffsetY !== lastOffsetY.value) {
+				lastOffsetY.value = newOffsetY;
+				translateY.value = withAnimation(newOffsetY);
+			}
 		},
 		[
 			baseScale,
@@ -159,6 +191,9 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 			isZoomedIn,
 			lastScale,
 			withAnimation,
+			isPanning,
+			lastOffsetY,
+			translateY,
 		]
 	);
 
@@ -338,11 +373,23 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 				// A pinch past the maximum settles back to it on release, as one past the minimum does
 				if (newScale < pinchedScale)
 					baseScale.value = withAnimation(newScale);
+				// The bounds shrink with the scale: pull the content back inside them. A pan still
+				// running (the fingers moved the content as well) does that at its own end.
+				if (!isPanning.value) handlePanOutside();
 			} else {
 				resetZoom();
 			}
 		},
-		[lastScale, baseScale, pinchScale, resetZoom, isZoomedIn, withAnimation]
+		[
+			lastScale,
+			baseScale,
+			pinchScale,
+			resetZoom,
+			isZoomedIn,
+			withAnimation,
+			isPanning,
+			handlePanOutside,
+		]
 	);
 
 	const zoomGesture = useMemo(() => {
@@ -379,6 +426,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 					// Store initial translation for relative movement
 					panStartOffsetX.value = event.translationX;
 					panStartOffsetY.value = event.translationY;
+					isPanning.value = true;
 				}
 			)
 			.onUpdate(
@@ -411,6 +459,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 					const effectiveScale = baseScale.value * pinchScale.value;
 					lastOffsetX.value += finalX / effectiveScale;
 					lastOffsetY.value += finalY / effectiveScale;
+					isPanning.value = false;
 
 					runOnJS(handlePanOutside)();
 				}
@@ -449,6 +498,7 @@ const useZoomGesture = (props: ZoomGestureProps = {}) => {
 		panThreshold,
 		panStartOffsetX,
 		panStartOffsetY,
+		isPanning,
 		baseScale,
 		translateX,
 		lastOffsetX,
